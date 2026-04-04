@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>연산 25 (Operation 25)</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Noto+Sans+KR:wght@400;700&display=swap"
+    rel="stylesheet">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+
+<body class="theme-space-night">
+  <div id="app">
+    <!-- Start Screen -->
+    <section id="start-screen" class="screen active">
+      <div class="content-box">
+        <h1 class="game-title">연산 25 <span class="subtitle">OPERATION 25</span></h1>
+        <p class="reference-text">빠르고 정확하게 계산하라!</p>
+
+        <div class="menu-buttons">
+          <button id="btn-start" class="primary-btn">게임 시작</button>
+          <button id="btn-theme" class="secondary-btn">테마 선택</button>
+          <button id="btn-ranking" class="secondary-btn">순위 확인</button>
+          <button id="btn-tutorial" class="tertiary-btn">튜토리얼</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Game Screen -->
+    <section id="game-screen" class="screen">
+      <header class="game-header">
+        <div class="round-info">ROUND <span id="current-round-display">1</span> <span class="total-round">/ 25</span>
+        </div>
+        <div class="timers">
+          <div class="time-limit">라운드 소요: <span id="round-time-display">00.00</span></div>
+          <div class="time-limit total">전체 소요: <span id="total-time-display">00.00</span></div>
+        </div>
+        <button id="btn-sound-toggle" class="sound-btn" type="button" title="사운드 켜기/끄기">🔊</button>
+      </header>
+
+      <div class="game-container">
+        <!-- 문제 출력 영역 -->
+        <div class="equation-box" id="equation-display">
+          ...
+        </div>
+
+        <!-- 현재까지 입력한 정답 영역 -->
+        <div class="answer-box" id="answer-box">
+          <span class="equals-sign">=</span>
+          <span id="answer-display" class="answer-value"></span>
+        </div>
+        <!-- 오답 표시 레이어 -->
+        <div style="position:relative; width:100%; height:0;">
+          <div id="wrong-indicator" style="display:none;"></div>
+        </div>
+
+        <!-- 가상 키패드 영역 -->
+        <div class="keypad">
+          <button class="key-btn" data-key="7" type="button">7</button>
+          <button class="key-btn" data-key="8" type="button">8</button>
+          <button class="key-btn" data-key="9" type="button">9</button>
+          <button class="key-btn" data-key="4" type="button">4</button>
+          <button class="key-btn" data-key="5" type="button">5</button>
+          <button class="key-btn" data-key="6" type="button">6</button>
+          <button class="key-btn" data-key="1" type="button">1</button>
+          <button class="key-btn" data-key="2" type="button">2</button>
+          <button class="key-btn" data-key="3" type="button">3</button>
+          <button class="key-btn action-key clear-key" data-key="clear" type="button">지우기</button>
+          <button class="key-btn" data-key="0" type="button">0</button>
+          <button class="key-btn action-key submit-key" data-key="enter" type="button">입력</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Result Screen -->
+    <section id="result-screen" class="screen">
+      <div class="content-box result-box">
+        <h2>모든 라운드 완료!</h2>
+        <p class="final-time-text">최종 소요 시간: <span id="final-time-display">--:--</span></p>
+
+        <div class="ranking-form">
+          <label for="player-name">이름을 입력하여 상위 랭킹에 도전하세요:</label>
+          <input type="text" id="player-name" placeholder="이름 (최대 10자)" maxlength="10">
+          <button id="btn-submit-score" class="primary-btn">기록 저장</button>
+        </div>
+
+        <button id="btn-home-from-result" class="secondary-btn mt-4">처음으로</button>
+      </div>
+    </section>
+
+    <!-- Modals -->
+    <!-- Theme Select Modal -->
+    <div id="theme-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>테마 선택</h2>
+        <div class="theme-options">
+          <button class="theme-btn" data-theme="theme-space-night">우주의 밤 (Space Night)</button>
+          <button class="theme-btn" data-theme="theme-classic-chalk">클래식 칠판 (Classic Chalk)</button>
+          <button class="theme-btn" data-theme="theme-cyber-grid">사이버 그리드 (Cyber Grid)</button>
+        </div>
+        <button class="close-modal tertiary-btn">닫기</button>
+      </div>
+    </div>
+
+    <!-- Ranking Modal -->
+    <div id="ranking-modal" class="modal hidden">
+      <div class="modal-content ranking-content">
+        <h2>Top 10 랭킹</h2>
+        <div class="ranking-list" id="ranking-list">
+          <p>로딩 중...</p>
+        </div>
+        <button class="close-modal tertiary-btn">닫기</button>
+      </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorial-modal" class="modal hidden">
+      <div class="modal-content tutorial-content">
+        <h2>어떻게 하냐구요?</h2>
+        <ul class="tutorial-list" style="text-align: left; padding-left: 20px;">
+          <li>총 <strong>25라운드</strong>의 수학 연산 문제를 빠르게 풀어야 합니다.</li>
+          <li>모든 정답은 <strong>양의 정수</strong>입니다.</li>
+          <li>기회 제한이나 힌트, 통과 기능이 없습니다. <strong>틀리면 맞출 때까지</strong> 재시도해야 합니다! (Hardcore)</li>
+          <li>최대한 빨리 25라운드를 통과하여 가장 빠른 시간을 기록하세요.</li>
+        </ul>
+        <button class="close-modal tertiary-btn">확인했어요!</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Audio Elements -->
+  <audio id="bgm" loop preload="auto"></audio>
+
+  <!-- Entry Script -->
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
