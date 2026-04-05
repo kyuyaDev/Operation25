@@ -262,7 +262,7 @@ button {
 @media (max-height: 750px) {
   .game-header { padding: 0.4rem 0.8rem; margin-bottom: 0.4rem; }
   .round-info { font-size: 0.95rem; }
-  .sound-btn { width: 2rem; height: 2rem; font-size: 1rem; }
+  .sound-btn, .pause-btn { width: 2rem; height: 2rem; font-size: 1rem; line-height: 2rem; }
   .timers { gap: 0.1rem; }
   .time-limit { font-size: 0.75rem; }
 }
@@ -296,48 +296,36 @@ button {
   color: var(--primary);
 }
 
-/* Sound Toggle Button */
-.sound-btn {
+/* Control Buttons (Sound, Pause) */
+.sound-btn, .pause-btn {
   background: var(--secondary);
   border: 1px solid var(--border);
   color: var(--text-main);
-  font-size: 1.3rem;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 0.5rem;
+  font-size: 1.3rem; 
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   flex-shrink: 0;
-  transition: background 0.2s, transform 0.1s;
+  transition: all 0.2s ease;
+  line-height: 2.6rem; /* Match height for centering */
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
 }
-.sound-btn:hover { background: var(--secondary-hover); transform: scale(1.08); }
-.sound-btn:active { transform: scale(0.95); }
-.sound-btn.muted { opacity: 0.5; }
- 
-/* Pause Button */
-.pause-btn {
-  background: var(--secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
-  font-size: 1.3rem;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  flex-shrink: 0;
-  transition: background 0.2s, transform 0.1s;
-}
-.pause-btn:hover { background: var(--secondary-hover); transform: scale(1.08); }
-.pause-btn:active { transform: scale(0.95); }
 
-@media (max-height: 750px) {
-  .pause-btn { width: 2rem; height: 2rem; font-size: 1rem; }
+.sound-btn:hover, .pause-btn:hover { 
+  background: var(--secondary-hover); 
+  transform: translateY(-2px); 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
+
+.sound-btn:active, .pause-btn:active { 
+  transform: translateY(0) scale(0.95); 
+}
+
+.sound-btn.muted { opacity: 0.5; }
 
 /* Game Interface */
 .game-container {
