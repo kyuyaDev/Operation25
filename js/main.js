@@ -68,6 +68,7 @@ const state = {
   timerInterval: null,
   theme: localStorage.getItem('op25-theme') || 'theme-space-night',
   soundEnabled: localStorage.getItem('op25-sound') !== 'off',
+  isPaused: false,
 };
 
 // ─── DOM Elements ─────────────────────────────────────────────────────────────
@@ -80,6 +81,7 @@ const modals = {
   theme: document.getElementById('theme-modal'),
   ranking: document.getElementById('ranking-modal'),
   tutorial: document.getElementById('tutorial-modal'),
+  pause: document.getElementById('pause-modal'),
 };
 const equationDisplay  = document.getElementById('equation-display');
 const answerDisplay    = document.getElementById('answer-display');
@@ -122,11 +124,12 @@ function formatTime(ms) {
 
 function startTimers() {
   state.roundStartTime = performance.now();
-  clearInterval(state.timerInterval);
+  if (state.timerInterval) clearInterval(state.timerInterval);
   state.timerInterval = setInterval(() => {
     const now = performance.now();
-    const roundMs = now - state.roundStartTime;
-    const totalMs = state.totalElapsed + roundMs;
+    const currentRunMs = now - state.roundStartTime;
+    const roundMs = state.roundElapsed + currentRunMs;
+    const totalMs = state.totalElapsed + currentRunMs;
 
     roundTimeDisp.textContent = formatTime(roundMs);
     totalTimeDisp.textContent = formatTime(totalMs);
@@ -134,31 +137,46 @@ function startTimers() {
 }
 
 function stopTimers() {
-  clearInterval(state.timerInterval);
-  const now = performance.now();
-  const roundMs = now - state.roundStartTime;
-  state.totalElapsed += roundMs;
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+  
+  if (state.roundStartTime > 0) {
+    const now = performance.now();
+    const currentRunMs = now - state.roundStartTime;
+    state.roundElapsed += currentRunMs;
+    state.totalElapsed += currentRunMs;
+    state.roundStartTime = 0; 
+  }
 }
 
 // ─── Game Logic ───────────────────────────────────────────────────────────────
-function loadRound(round) {
+function loadRound(round, problem = null) {
   state.currentRound = round;
   state.currentAnswer = '';
-  state.currentProblem = generateRound(round);
+  state.currentProblem = problem || generateRound(round);
+  state.roundElapsed = 0; // Reset for new round
 
   currentRoundDisp.textContent = round;
   equationDisplay.textContent = state.currentProblem.equation;
   answerDisplay.textContent = '';
 
   roundTimeDisp.textContent = '00.00';
-  startTimers();
+  // Note: we don't call startTimers() here, it's called by the parent (startGame or resumeGame or submitAnswer)
 }
 
-function startGame() {
-  state.totalElapsed = 0;
-  state.currentAnswer = '';
-  loadRound(1);
+function startGame(isContinue = false) {
+  if (!isContinue) {
+    state.totalElapsed = 0;
+    state.roundElapsed = 0;
+    state.currentAnswer = '';
+    loadRound(1);
+  }
+  
   showScreen('game');
+  screens.game.classList.remove('paused');
+  state.isPaused = false;
 
   if (!bgmEngine) {
     bgmEngine = new BGMEngine(getAudioCtx());
@@ -166,9 +184,83 @@ function startGame() {
   bgmEngine.stop();
   bgmEngine.setTheme(state.theme);
   if (state.soundEnabled) bgmEngine.start();
+  
+  startTimers();
+}
+
+// ─── Pause & Save Logic ──────────────────────────────────────────────────────
+function pauseGame() {
+  if (!screens.game.classList.contains('active') || state.isPaused) return;
+  
+  state.isPaused = true;
+  stopTimers();
+  if (bgmEngine) bgmEngine.stop();
+  
+  screens.game.classList.add('paused');
+  modals.pause.classList.remove('hidden');
+  saveGameState();
+}
+
+function resumeGame() {
+  if (!state.isPaused) return;
+  
+  state.isPaused = false;
+  screens.game.classList.remove('paused');
+  modals.pause.classList.add('hidden');
+  
+  if (state.soundEnabled && bgmEngine) bgmEngine.start();
+  startTimers();
+}
+
+function saveGameState() {
+  if (!screens.game.classList.contains('active')) return;
+  const gameState = {
+    currentRound: state.currentRound,
+    roundElapsed: state.roundElapsed,
+    totalElapsed: state.totalElapsed,
+    currentProblem: state.currentProblem,
+    theme: state.theme,
+    timestamp: Date.now()
+  };
+  localStorage.setItem('op25-savegame', JSON.stringify(gameState));
+  checkAndShowContinue();
+}
+
+function loadGameState() {
+  const saved = localStorage.getItem('op25-savegame');
+  if (!saved) return;
+  
+  const savedState = JSON.parse(saved);
+  state.totalElapsed = savedState.totalElapsed;
+  state.roundElapsed = savedState.roundElapsed || 0;
+  
+  // Directly set round data without calling loadRound that resets it
+  state.currentRound = savedState.currentRound;
+  state.currentProblem = savedState.currentProblem;
+  currentRoundDisp.textContent = state.currentRound;
+  equationDisplay.textContent = state.currentProblem.equation;
+  answerDisplay.textContent = '';
+  
+  startGame(true);
+}
+
+function clearSavedGame() {
+  localStorage.removeItem('op25-savegame');
+  checkAndShowContinue();
+}
+
+function checkAndShowContinue() {
+  const saved = localStorage.getItem('op25-savegame');
+  const btnContinue = document.getElementById('btn-continue');
+  if (saved) {
+    btnContinue.classList.remove('hidden');
+  } else {
+    btnContinue.classList.add('hidden');
+  }
 }
 
 function submitAnswer() {
+  if (state.isPaused) return;
   const userAns = state.currentAnswer.trim();
   const correctAns = state.currentProblem.answer.trim();
 
@@ -206,6 +298,8 @@ function submitAnswer() {
         state.currentAnswer = '';
         answerDisplay.textContent = '';
         loadRound(state.currentRound + 1);
+        startTimers(); // Start for the new round
+        saveGameState();
       }, 700);
     }
   } else {
@@ -243,6 +337,7 @@ function submitAnswer() {
 
 function endGame() {
   bgmEngine && bgmEngine.stop();
+  clearSavedGame();
   const totalMs = state.totalElapsed;
   finalTimeDisp.textContent = formatTime(totalMs);
   playerNameInput.value = '';
@@ -254,6 +349,7 @@ function endGame() {
 
 // ─── Keypad Handler ──────────────────────────────────────────────────────────
 function handleKey(key) {
+  if (state.isPaused) return;
   if (key === 'clear') {
     if (state.currentAnswer.length > 0) {
       state.currentAnswer = state.currentAnswer.slice(0, -1);
@@ -275,7 +371,29 @@ function handleKey(key) {
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 document.getElementById('btn-start').addEventListener('click', () => {
   getAudioCtx(); // Unlock audio
+  clearSavedGame();
   startGame();
+});
+
+document.getElementById('btn-continue').addEventListener('click', () => {
+  getAudioCtx();
+  loadGameState();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  pauseGame();
+});
+
+document.getElementById('btn-resume').addEventListener('click', () => {
+  resumeGame();
+});
+
+document.getElementById('btn-exit-to-home').addEventListener('click', () => {
+  state.isPaused = false;
+  modals.pause.classList.add('hidden');
+  screens.game.classList.remove('paused');
+  showScreen('start');
+  if (bgmEngine) bgmEngine.stop();
 });
 
 document.getElementById('btn-theme').addEventListener('click', () => {
@@ -344,6 +462,16 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Auto-Pause on focus loss
+window.addEventListener('blur', () => {
+  pauseGame();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    pauseGame();
+  }
+});
+
 // Sound Toggle
 const btnSoundToggle = document.getElementById('btn-sound-toggle');
 function updateSoundBtn() {
@@ -386,3 +514,4 @@ function escapeHtml(str) {
 
 // Apply saved theme on load
 applyTheme(state.theme);
+checkAndShowContinue();

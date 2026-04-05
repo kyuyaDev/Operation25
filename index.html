@@ -25,6 +25,7 @@
 
         <div class="menu-buttons">
           <button id="btn-start" class="primary-btn">게임 시작</button>
+          <button id="btn-continue" class="primary-btn hidden" style="background: var(--accent-light);">이어서 하기</button>
           <button id="btn-theme" class="secondary-btn">테마 선택</button>
           <button id="btn-ranking" class="secondary-btn">순위 확인</button>
           <button id="btn-tutorial" class="tertiary-btn">튜토리얼</button>
@@ -42,6 +43,7 @@
           <div class="time-limit total">전체 소요: <span id="total-time-display">00.00</span></div>
         </div>
         <button id="btn-sound-toggle" class="sound-btn" type="button" title="사운드 켜기/끄기">🔊</button>
+        <button id="btn-pause" class="pause-btn" type="button" title="일시정지">⏸️</button>
       </header>
 
       <div class="game-container">
@@ -130,6 +132,18 @@
           <li>최대한 빨리 25라운드를 통과하여 가장 빠른 시간을 기록하세요.</li>
         </ul>
         <button class="close-modal tertiary-btn">확인했어요!</button>
+      </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="pause-modal" class="modal hidden">
+      <div class="modal-content pause-content">
+        <h2 class="pause-title">일시정지</h2>
+        <p class="pause-desc">잠시 숨을 고르세요!</p>
+        <div class="pause-buttons">
+          <button id="btn-resume" class="primary-btn">계속 풀기</button>
+          <button id="btn-exit-to-home" class="tertiary-btn">저장하고 처음으로</button>
+        </div>
       </div>
     </div>
 
